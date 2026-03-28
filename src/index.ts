@@ -177,6 +177,58 @@ const openApiSpec = {
         },
       },
     },
+    "/api/find-similar": {
+      post: {
+        summary: "Find web pages similar to a given URL using Exa AI",
+        operationId: "exaFindSimilar",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["url"],
+                properties: {
+                  url: {
+                    type: "string",
+                    description: "The reference URL to find similar pages for",
+                  },
+                  numResults: {
+                    type: "integer",
+                    description: "Number of results to return (default: 5)",
+                    default: 5,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Similar pages found by Exa",
+            content: {
+              "application/json": {
+                schema: { type: "object" },
+              },
+            },
+          },
+          "500": {
+            description: "Error calling Exa API",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: { type: "string" },
+                    details: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/scrape": {
       post: {
         summary: "Scrape a webpage and get clean content using Firecrawl",
@@ -250,6 +302,13 @@ app.get("/services", (_req, res) => {
       method: "POST",
     },
     {
+      id: "exa-find-similar",
+      name: "Exa Find Similar",
+      description: "Find web pages similar to a given URL",
+      endpoint: "/api/find-similar",
+      method: "POST",
+    },
+    {
       id: "firecrawl-scrape",
       name: "Firecrawl Scrape",
       description: "Scrape a webpage and get clean markdown content",
@@ -285,6 +344,25 @@ app.post("/api/answer", async (req, res) => {
     const response = await axios.post(
       `${EXA_BASE_URL}/answer`,
       { query },
+      { headers: { "x-api-key": EXA_API_KEY } }
+    );
+
+    res.json(response.data);
+  } catch (err: any) {
+    res.status(500).json({
+      error: "Exa API call failed",
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+app.post("/api/find-similar", async (req, res) => {
+  try {
+    const { url, numResults = 5 } = req.body;
+
+    const response = await axios.post(
+      `${EXA_BASE_URL}/findSimilar`,
+      { url, numResults },
       { headers: { "x-api-key": EXA_API_KEY } }
     );
 
