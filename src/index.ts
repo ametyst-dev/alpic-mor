@@ -130,53 +130,6 @@ const openApiSpec = {
         },
       },
     },
-    "/api/answer": {
-      post: {
-        summary: "Get an AI-generated answer with citations using Exa AI",
-        operationId: "exaAnswer",
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                required: ["query"],
-                properties: {
-                  query: {
-                    type: "string",
-                    description: "The question to answer",
-                  },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          "200": {
-            description: "Exa AI answer with citations",
-            content: {
-              "application/json": {
-                schema: { type: "object" },
-              },
-            },
-          },
-          "500": {
-            description: "Error calling Exa API",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    error: { type: "string" },
-                    details: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
     "/api/find-similar": {
       post: {
         summary: "Find web pages similar to a given URL using Exa AI",
@@ -295,13 +248,6 @@ app.get("/services", (_req, res) => {
       method: "POST",
     },
     {
-      id: "exa-answer",
-      name: "Exa Answer",
-      description: "Get an AI-generated answer with citations",
-      endpoint: "/api/answer",
-      method: "POST",
-    },
-    {
       id: "exa-find-similar",
       name: "Exa Find Similar",
       description: "Find web pages similar to a given URL",
@@ -325,25 +271,6 @@ app.post("/api/search", async (req, res) => {
     const response = await axios.post(
       `${EXA_BASE_URL}/search`,
       { query, numResults },
-      { headers: { "x-api-key": EXA_API_KEY } }
-    );
-
-    res.json(response.data);
-  } catch (err: any) {
-    res.status(500).json({
-      error: "Exa API call failed",
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
-app.post("/api/answer", async (req, res) => {
-  try {
-    const { query } = req.body;
-
-    const response = await axios.post(
-      `${EXA_BASE_URL}/answer`,
-      { query },
       { headers: { "x-api-key": EXA_API_KEY } }
     );
 
