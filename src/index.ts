@@ -98,7 +98,7 @@ const openApiSpec = {
                   numResults: {
                     type: "integer",
                     description: "Number of results to return (default: 5)",
-                    default: 5,
+                    default: 10,
                   },
                 },
               },
@@ -150,7 +150,7 @@ const openApiSpec = {
                   numResults: {
                     type: "integer",
                     description: "Number of results to return (default: 5)",
-                    default: 5,
+                    default: 10,
                   },
                 },
               },
@@ -329,7 +329,7 @@ app.get("/services", (_req, res) => {
 
 app.post("/api/search", async (req, res) => {
   try {
-    const { query, numResults = 5 } = req.body;
+    const { query, numResults = 10 } = req.body;
 
     const response = await axios.post(
       `${EXA_BASE_URL}/search`,
@@ -348,7 +348,7 @@ app.post("/api/search", async (req, res) => {
 
 app.post("/api/find-similar", async (req, res) => {
   try {
-    const { url, numResults = 5 } = req.body;
+    const { url, numResults = 10 } = req.body;
 
     const response = await axios.post(
       `${EXA_BASE_URL}/findSimilar`,
