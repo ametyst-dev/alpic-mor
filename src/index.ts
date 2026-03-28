@@ -12,6 +12,7 @@ const EXA_API_KEY = process.env.EXA_API_KEY;
 const EXA_BASE_URL = "https://api.exa.ai";
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
 const FIRECRAWL_BASE_URL = "https://api.firecrawl.dev/v1";
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 app.use(cors());
 app.use(express.json());
@@ -24,7 +25,7 @@ const openApiSpec = {
     title: "Ametyst Merchant API",
     version: "1.0.0",
     description:
-      "Merchant service exposing AI services (Exa, Firecrawl). Called by MCP Server Ametyst.",
+      "Merchant service exposing AI services (Exa, Firecrawl, Resend). Called by MCP Server Ametyst.",
   },
   servers: [{ url: "/" }],
   paths: {
@@ -229,6 +230,61 @@ const openApiSpec = {
         },
       },
     },
+    "/api/send-email": {
+      post: {
+        summary: "Send an email using Resend",
+        operationId: "resendSendEmail",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["to", "subject", "text"],
+                properties: {
+                  to: {
+                    type: "string",
+                    description: "Recipient email address",
+                  },
+                  subject: {
+                    type: "string",
+                    description: "Email subject line",
+                  },
+                  text: {
+                    type: "string",
+                    description: "Email body text",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Email sent successfully",
+            content: {
+              "application/json": {
+                schema: { type: "object" },
+              },
+            },
+          },
+          "500": {
+            description: "Error sending email",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: { type: "string" },
+                    details: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 };
 
@@ -252,6 +308,13 @@ app.get("/services", (_req, res) => {
       name: "Exa Find Similar",
       description: "Find web pages similar to a given URL",
       endpoint: "/api/find-similar",
+      method: "POST",
+    },
+    {
+      id: "resend-email",
+      name: "Resend Email",
+      description: "Send an email to any recipient",
+      endpoint: "/api/send-email",
       method: "POST",
     },
     {
@@ -297,6 +360,30 @@ app.post("/api/find-similar", async (req, res) => {
   } catch (err: any) {
     res.status(500).json({
       error: "Exa API call failed",
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+app.post("/api/send-email", async (req, res) => {
+  try {
+    const { to, subject, text } = req.body;
+
+    const response = await axios.post(
+      "https://api.resend.com/emails",
+      {
+        from: "Ametyst <onboarding@resend.dev>",
+        to,
+        subject,
+        text,
+      },
+      { headers: { Authorization: `Bearer ${RESEND_API_KEY}` } }
+    );
+
+    res.json(response.data);
+  } catch (err: any) {
+    res.status(500).json({
+      error: "Resend API call failed",
       details: err.response?.data || err.message,
     });
   }
