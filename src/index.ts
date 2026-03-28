@@ -10,6 +10,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const EXA_API_KEY = process.env.EXA_API_KEY;
 const EXA_BASE_URL = "https://api.exa.ai";
+const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+const FIRECRAWL_BASE_URL = "https://api.firecrawl.dev/v1";
 
 app.use(cors());
 app.use(express.json());
@@ -19,10 +21,10 @@ app.use(express.json());
 const openApiSpec = {
   openapi: "3.0.0",
   info: {
-    title: "Exa Merchant API",
+    title: "Ametyst Merchant API",
     version: "1.0.0",
     description:
-      "Merchant service exposing Exa AI search and answer capabilities. Called by MCP Server Ametyst.",
+      "Merchant service exposing AI services (Exa, Firecrawl). Called by MCP Server Ametyst.",
   },
   servers: [{ url: "/" }],
   paths: {
@@ -175,13 +177,60 @@ const openApiSpec = {
         },
       },
     },
+    "/api/scrape": {
+      post: {
+        summary: "Scrape a webpage and get clean content using Firecrawl",
+        operationId: "firecrawlScrape",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["url"],
+                properties: {
+                  url: {
+                    type: "string",
+                    description: "The URL of the webpage to scrape",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "Scraped webpage content",
+            content: {
+              "application/json": {
+                schema: { type: "object" },
+              },
+            },
+          },
+          "500": {
+            description: "Error calling Firecrawl API",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: { type: "string" },
+                    details: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 };
 
 // --- Routes ---
 
 app.get("/", (_req, res) => {
-  res.json({ name: "Exa Merchant", status: "ok" });
+  res.json({ name: "Ametyst Merchant", status: "ok" });
 });
 
 app.get("/services", (_req, res) => {
@@ -198,6 +247,13 @@ app.get("/services", (_req, res) => {
       name: "Exa Answer",
       description: "Get an AI-generated answer with citations",
       endpoint: "/api/answer",
+      method: "POST",
+    },
+    {
+      id: "firecrawl-scrape",
+      name: "Firecrawl Scrape",
+      description: "Scrape a webpage and get clean markdown content",
+      endpoint: "/api/scrape",
       method: "POST",
     },
   ]);
@@ -241,6 +297,25 @@ app.post("/api/answer", async (req, res) => {
   }
 });
 
+app.post("/api/scrape", async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    const response = await axios.post(
+      `${FIRECRAWL_BASE_URL}/scrape`,
+      { url, formats: ["markdown"] },
+      { headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}` } }
+    );
+
+    res.json(response.data);
+  } catch (err: any) {
+    res.status(500).json({
+      error: "Firecrawl API call failed",
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
 app.get("/openapi.json", (_req, res) => {
   res.json(openApiSpec);
 });
@@ -250,7 +325,7 @@ app.use("/docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
 // --- Start ---
 
 app.listen(PORT, () => {
-  console.log(`Exa Merchant running on port ${PORT}`);
+  console.log(`Ametyst Merchant running on port ${PORT}`);
   console.log(`Swagger UI: http://localhost:${PORT}/docs`);
   console.log(`OpenAPI spec: http://localhost:${PORT}/openapi.json`);
 });
